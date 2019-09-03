@@ -1,1 +1,994 @@
+//Jordan Laurent -- Seven Segment Console Display Application
+public class Foothill
+{
+   //main method
+   public static void main (String[] args)
+   {
+      SevenSegmentImage ssi = new SevenSegmentImage();
+      
+      //SevenSegmentImage client test
+      System.out.println(
+         "Testing SevenSegmentImage ===================================");
+      
+      //testing setSize()
+      ssi.setSize( 11, 15 );
+      ssi.turnOnCellsForSegment( 'a' );
+      ssi.display();
+      ssi.turnOnCellsForSegment( 'b' );
+      ssi.display();
+      ssi.turnOnCellsForSegment( 'c' );
+      ssi.display();
+      ssi.turnOnCellsForSegment( 'd' );
+      ssi.display();
+      
+      //clearing display and retesting class
+      ssi.setSize(7,  9);
+      ssi.clearImage();
+      ssi.turnOnCellsForSegment( 'e' );
+      ssi.display();
+      ssi.turnOnCellsForSegment( 'f' );
+      ssi.display();
+      ssi.turnOnCellsForSegment( 'g' );
+      ssi.display();
+      
+      //testing results of bad input
+      ssi.clearImage();
+      ssi.turnOnCellsForSegment( 'x' );
+      ssi.display();
+      ssi.turnOnCellsForSegment( '3' );
+      ssi.display(); 
+      
+      SevenSegmentDisplay  my7SegForCon = new SevenSegmentDisplay( 15, 13 );
+      int j;
+      
+      //SevenSegmentDisplay client test
+      System.out.println(
+         "Testing SevenSegmentDisplay ===================================\n\n");
+
+      my7SegForCon.setSize( 7, 9 );
+      //testing each hexadecimal character for display
+      for ( j = 0; j < 16; j++ )
+      {
+         my7SegForCon.eval( j );
+         my7SegForCon.loadConsoleImage();
+         my7SegForCon.consoleDisplay();
+      }
+      //testing size modification in loop
+      for ( j = 5; j < 21; j += 4)
+      {
+         my7SegForCon.setSize( j, 2*j + 1 );
+         my7SegForCon.eval( 5 );
+         my7SegForCon.loadConsoleImage();
+         my7SegForCon.consoleDisplay();
+      }   
+      //testing alternate input
+      my7SegForCon.setSize(7, 7);
+      //array whose values correspond to letters of a word
+      int[] anagram = new int[]{11, 1, 14, 5, 5, 14, 13};
+      //displaying each letter represented by anagram[] in a loop
+      for ( j = 0; j < anagram.length; j++)
+      {
+         my7SegForCon.eval( anagram[j] );
+         my7SegForCon.loadConsoleImage();
+         my7SegForCon.consoleDisplay();
+      }
+
+   }
+}
+
+//Cloneable SevenSegmentImage class
+class SevenSegmentImage implements Cloneable
+{
+   //static finals
+   public static final int MIN_HEIGHT = 5;
+   public static final int MIN_WIDTH = 5;
+   public static final int MAX_HEIGHT = 65;
+   public static final int MAX_WIDTH = 41;
+   public static final String DRAW_CHAR = "*";
+   public static final String BLANK_CHAR = " ";
+   
+   //instance members
+   private boolean[][] data;
+   private int topRow, midRow, bottomRow, leftCol, rightCol;
+   //default constructor
+   public SevenSegmentImage()
+   {
+      this(MIN_WIDTH, MIN_HEIGHT);
+   }
+   //overloaded constructor
+   public SevenSegmentImage(int width, int height)
+   {
+      //uses setSize method to validate input and set size properly
+      if(!setSize(width, height))
+         setSize(MIN_WIDTH, MIN_HEIGHT);
+   }
+   //sets all indices of array to false
+   public void clearImage()
+   {
+      for(int k = 0; k < data.length; k++)
+         for(int j = 0; j < data[0].length; j++)
+            data[k][j] = false;
+   }
+   //used for illuminating segments
+   public boolean turnOnCellsForSegment(char segment)
+   {
+      //checks for valid input
+      if(!validateSegment(segment))
+         return false;
+      //uses appropriate helper method based on input
+      if(Character.toLowerCase(segment) == 'a')
+         drawHorizontal(topRow);
+      else if(Character.toLowerCase(segment) == 'b')
+         drawVertical(rightCol, topRow, midRow);
+      else if(Character.toLowerCase(segment) == 'c')
+         drawVertical(rightCol, midRow, bottomRow);
+      else if(Character.toLowerCase(segment) == 'd')
+         drawHorizontal(bottomRow);
+      else if(Character.toLowerCase(segment) == 'e')
+         drawVertical(leftCol, midRow, bottomRow);
+      else if(Character.toLowerCase(segment) == 'f')
+         drawVertical(leftCol, topRow, midRow);
+      else if(Character.toLowerCase(segment) == 'g')
+         drawHorizontal(midRow);
+      return true;
+   }
+   //array size modifier
+   public boolean setSize(int width, int height)
+   {
+      //checks for valid input
+      if (!validateSize(width, height))
+         return false;
+      //initializing all dimension ints
+      topRow = 0;
+      bottomRow = height-1;
+      midRow = height / 2;
+      leftCol = 0;
+      rightCol = width-1;
+      if (data == null) //case used in constructor call
+         data = new boolean[height][width];
+      else
+         allocateCleanArray(); //invokes deep copy of data array
+      clearImage(); //sets all boolean values to false
+      return true;
+   }
+   //prints the image to console
+   public void display()
+   {
+      //nested for loop prints proper characters line by line
+      for(int k = 0; k < data.length; k++)
+      {
+         for(int j = 0; j < data[0].length; j++)
+         {
+            if(data[k][j] == true)
+               System.out.print(DRAW_CHAR);
+            else if(data[k][j] == false)
+               System.out.print(BLANK_CHAR);
+         }
+         //after row is completed, println()
+         System.out.println();
+      }
+      //ensures adequate spacing between each display() execution
+      System.out.println("\n");
+   }
+
+   // deep copy required
+   public Object clone() throws CloneNotSupportedException
+   {
+      //return object created below
+      SevenSegmentImage ssi = (SevenSegmentImage)super.clone();
+      //copying non-primitive object data
+      ssi.data = new boolean[this.data.length][this.data[0].length];
+      for(int k = 0; k < data.length; k++)
+         for(int j = 0; j < data[0].length; j++)
+            ssi.data[k][j] = this.data[k][j];
+      return ssi;
+   }
+   //helper method validates user input
+   private boolean validateSize(int width, int height)
+   {
+      if (width < MAX_WIDTH && width > MIN_WIDTH && 
+            height < MAX_HEIGHT && height > MIN_HEIGHT)
+         return true;
+      return false;
+   }
+   //private helper validates user input for chars a-g
+   private boolean validateSegment(char segment)
+   {
+      String indexRef = "abcdefg";
+      if(!indexRef.contains(Character.toString(Character.toLowerCase(segment))))
+         return false;
+      return true;
+   }
+   //helper method uses clone() to provide a new array for setSize()
+   private void allocateCleanArray()
+   {
+      data = (boolean[][])((new boolean[bottomRow+1][rightCol+1]).clone());
+   } 
+
+   // horizontal segment helper
+   void drawHorizontal(int row)
+   {
+      for(int k = 0; k < data[0].length; k++)
+         data[row][k] = true; 
+   }
+   //vertical segment helper
+   void drawVertical(int col, int startRow, int stopRow)
+   {
+      //loop counter variables declared
+      int k, j;
+      //k is used to store the lesser value. This helps sanitize
+      //user input in case of stopRow < startRow
+      if(stopRow >= startRow)
+      {
+         k = startRow;
+         j = stopRow;
+      }
+      else
+      {
+         k = stopRow;
+         j = startRow;
+      }
+      for(;j >= k; k++)
+         data[k][col] = true;
+   }
+}
+//Cloneable SevenSegmentDisplay Class
+class SevenSegmentDisplay  implements Cloneable
+{
+   //helper objets
+   private SevenSegmentImage theImage;
+   private SevenSegmentLogic theDisplay;
+   
+   //default constructor invokes both instance objects' default constructors
+   public SevenSegmentDisplay()
+   {
+      theImage = new SevenSegmentImage();
+      theDisplay = new SevenSegmentLogic();
+   }
+   //overloaded constructor passes theImage parameters whose constructor validates
+   public SevenSegmentDisplay( int width, int height )
+   {
+      theImage = new SevenSegmentImage(width, height);
+      theDisplay = new SevenSegmentLogic();
+   }
+   //passes arguments to theImage.setSize(), which then validates them
+   public boolean setSize( int width, int height )
+   {
+      return theImage.setSize(width, height);
+   }
+   //prepares image for display
+   public void loadConsoleImage()
+   {
+      //character index used for proper segment index in String ref
+      String ref = "abcdefg";
+      theImage.clearImage();
+      //if the state of a segment in theDisplay is true, it is illuminated
+      for(int k = 0; k < theDisplay.segs.length; k++)
+         if (theDisplay.segs[k].getState() == true)
+            theImage.turnOnCellsForSegment(ref.charAt(k));
+   }
+   //display method
+   public void consoleDisplay()
+   {
+      theImage.display();
+   }
+   //simplifies process of client modification
+   public void eval( int input )
+   {
+      //valid input testing
+      if(input < 0 || input > 15)
+         return;
+      //changes state accordingly in theDisplay BooleanFunc array segs[]
+      for(int k = 0; k < theDisplay.segs.length; k++)
+         theDisplay.segs[k].eval(input);
+   }
+   //clone method
+   public Object clone() throws CloneNotSupportedException
+   {
+      //return object
+      SevenSegmentImage ssi = (SevenSegmentImage)super.clone();
+      //copying over members using their own clone() methods
+      theImage = (SevenSegmentImage)this.theImage.clone();
+      theDisplay = (SevenSegmentLogic)this.theDisplay.clone();
+      return ssi;
+   }
+}
+
+//cloneable BooleanFunc class, used for segments in deisplays
+class BooleanFunc implements Cloneable
+{
+    //static finals
+    public static final int MAX_TABLE_FOR_CLASS = 65536;
+    public static final int DEFAULT_TABLE_SIZE = 16;
+    
+    //private instance members
+    private int tableSize;
+    private boolean [] truthTable;
+    private boolean state, evalReturnIfError;
+    
+    //default constructor
+    public BooleanFunc()
+    {
+       this(DEFAULT_TABLE_SIZE);
+    }
+    //overloaded constructor 1
+    public BooleanFunc(int tableSize)
+    {
+       this(tableSize, true);
+    }
+    //overloaded constructor 2
+    public BooleanFunc(int tableSize, boolean evalReturnIfError)
+    {
+       if(tableSize > MAX_TABLE_FOR_CLASS || tableSize <= 0)
+          this.tableSize = DEFAULT_TABLE_SIZE;
+       else
+          this.tableSize = tableSize;
+       truthTable = new boolean[tableSize];
+       
+       for(int k = 0; k < truthTable.length; k++)
+          truthTable[k] = false;
+       state = false;
+       this.evalReturnIfError = evalReturnIfError;
+    }
+    //sets specified values to true
+    public boolean setTruthTableUsingTrue(int[] inputsThatProduceTrue)
+    {
+       
+       if(inputsThatProduceTrue.length > truthTable.length)
+          return !(evalReturnIfError = true);      
+       for(int j = 0; j < truthTable.length; j++)
+          truthTable[j] = false;    
+       //looping through setting proper values to true
+       for(int k = 0; k < inputsThatProduceTrue.length; k++)
+       {
+          if(inputsThatProduceTrue[k] < truthTable.length)
+             truthTable[inputsThatProduceTrue[k]] = true;
+          else 
+             evalReturnIfError = true;
+       }
+   
+       return true;
+    }
+    //sets specified values to false
+    public boolean setTruthTableUsingFalse(int[] inputsThatProduceFalse)
+    {
+       if(inputsThatProduceFalse.length > truthTable.length)
+          return !(evalReturnIfError = true);
+       for(int j = 0; j < truthTable.length; j++)
+          truthTable[j] = true;  
+       //looping through setting proper values to false
+       for(int k = 0; k < inputsThatProduceFalse.length; k++)
+       {
+          if(inputsThatProduceFalse[k] < truthTable.length)
+             truthTable[inputsThatProduceFalse[k]] = false;
+          else
+             evalReturnIfError = true;
+       }
+       return true;
+    }
+    //state mutator
+    public boolean eval(int input)
+    {
+       //sets evalReturnIfError equal to state before returning, as specified
+       if(input >= truthTable.length || input < 0)      
+          return evalReturnIfError = state;
+       if (truthTable[input] == true)
+          return state = true;
+       return state = false;
+    }
+    //state accessor
+    public boolean getState()
+    {
+       return state;
+    }
+    //clone method
+    public Object clone()
+       throws CloneNotSupportedException
+    {
+       BooleanFunc bF;
+       //setting instance members appropriately
+       bF = (BooleanFunc)super.clone();
+       bF.tableSize = this.tableSize;
+       bF.state = this.state;
+       bF.evalReturnIfError = this.evalReturnIfError;
+       bF.truthTable = new boolean[this.truthTable.length];
+       for(int k = 0; k < truthTable.length; k++)
+          bF.truthTable[k] = this.truthTable[k];
+       return bF;
+    }
+}
+//cloneable MultiSegmentLogic class, used for display logic
+class MultiSegmentLogic implements Cloneable
+{
+    //protected data allows subclasses to use these instance members
+    protected int numSegs;
+    protected BooleanFunc[] segs;
+    
+    //constructor takes numSegs as a parameter
+    public MultiSegmentLogic(int numSegs)
+    {
+       setNumSegs(numSegs); //using predefined method for error checking
+       //and to avoid code duplication
+    }
+    //default constructor
+    public MultiSegmentLogic()
+    {
+       this(7); //avoiding code duplication by chaining togther with this()
+    }
+    //numSegs mutator method
+    public boolean setNumSegs(int numSegs)
+    {
+       //checking for bad input
+       if (numSegs < 1)
+          return false;
+       this.numSegs = numSegs;
+       //in null case, as in constructor, initialize array
+       if(segs == null)
+          segs = new BooleanFunc[numSegs];
+       else
+          //reallocating memory to segs[] array as specified
+          segs = (BooleanFunc[])((new BooleanFunc[numSegs]).clone());
+       //initialize each BooleanFunc in array in either case with for loop
+       for(int k = 0; k < numSegs; k++)
+          segs[k] = new BooleanFunc();
+       return true;
+    }
+    //set segment method
+    public boolean setSegment(int segNum, BooleanFunc funcForThisSeg)
+    {
+       //testing for bad data
+       
+       if(segNum < 0 || segNum >= numSegs)
+          return false;
+       //avoids throwing an exception in method header with try/catch
+       try
+       {
+          //sets segment to provided BooleanFunc if it clones properly
+          segs[segNum] = (BooleanFunc)funcForThisSeg.clone();
+       }
+       catch(CloneNotSupportedException e)
+       {
+          //if invalid input, return false
+          return false;
+       }
+       return true;
+    }
+    //eval method for entire array of BooleanFunc objects
+    public void eval(int input)
+    {
+       for (int k = 0; k < segs.length; k++)
+       {
+          segs[k].eval(input);
+       }
+    }
+    //clone method
+    public Object clone()
+       throws CloneNotSupportedException
+    {
+       MultiSegmentLogic mSD;
+   
+       mSD = (MultiSegmentLogic)super.clone();
+       mSD.numSegs = this.numSegs;
+       mSD.segs = new BooleanFunc[this.segs.length];
+       for(int k = 0; k < segs.length; k++)
+       {
+          mSD.segs[k] = (BooleanFunc)this.segs[k].clone();
+       }     
+       return mSD;
+    }
+}
+//derivative class of MultiSegmentLogic
+class SevenSegmentLogic extends MultiSegmentLogic
+{
+    /* array of truth table false values. 
+    makes more sense to declare once than over and over again
+    through the helper method every time a new SevenSegmentLogic
+    constructor call is made     */
+    public static final int[][] FALSE_VALUES = new int[][]  //segment letter:
+    {
+       {1, 4, 11, 13},                     //a
+       {5, 6, 11, 12, 14, 15},             //b
+       {2, 12, 14, 15},                    //c
+       {1, 4, 7, 10, 15},                  //d
+       {1, 3, 4, 5, 7, 9},                 //e
+       {1, 2, 3, 7, 13},                   //f
+       {0, 1, 7, 12}                       //g
+    };
+    //default constructor only
+    public SevenSegmentLogic()
+    {
+       super();
+       formatDisplay(); //private helper sets truth tables
+    }
+    //returns value of specified segment
+    public boolean getValOfSeg(int seg)
+    {
+       if(seg < 0 || seg >= segs.length)
+          return false;
+       return segs[seg].getState();
+    }
+    //private helper
+    private void formatDisplay()
+    {
+       //local BooleanFunc
+       BooleanFunc helperBool = new BooleanFunc();
+       
+       //setting all truth tables accordingly infor loop
+       for(int k = 0; k< 7; k++)
+       {
+          helperBool.setTruthTableUsingFalse(FALSE_VALUES[k]);
+          setSegment(k, helperBool);
+          //segs[k].setTruthTableUsingFalse(falseValues[k]);
+       }
+    }
+}
+
+
+/*-----------------------Commence Sample Run-----------------------
+
+Testing SevenSegmentImage ===================================
+***********
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+           
+
+
+***********
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+           
+           
+           
+           
+           
+           
+           
+
+
+***********
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+
+
+***********
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+          *
+***********
+
+
+       
+       
+       
+       
+*      
+*      
+*      
+*      
+*      
+
+
+*      
+*      
+*      
+*      
+*      
+*      
+*      
+*      
+*      
+
+
+*      
+*      
+*      
+*      
+*******
+*      
+*      
+*      
+*      
+
+
+       
+       
+       
+       
+       
+       
+       
+       
+       
+
+
+       
+       
+       
+       
+       
+       
+       
+       
+       
+
+
+Testing SevenSegmentDisplay ===================================
+
+
+*******
+*     *
+*     *
+*     *
+*     *
+*     *
+*     *
+*     *
+*******
+
+
+      *
+      *
+      *
+      *
+      *
+      *
+      *
+      *
+      *
+
+
+*******
+      *
+      *
+      *
+*******
+*      
+*      
+*      
+*******
+
+
+*******
+      *
+      *
+      *
+*******
+      *
+      *
+      *
+*******
+
+
+*     *
+*     *
+*     *
+*     *
+*******
+      *
+      *
+      *
+      *
+
+
+*******
+*      
+*      
+*      
+*******
+      *
+      *
+      *
+*******
+
+
+*******
+*      
+*      
+*      
+*******
+*     *
+*     *
+*     *
+*******
+
+
+*******
+      *
+      *
+      *
+      *
+      *
+      *
+      *
+      *
+
+
+*******
+*     *
+*     *
+*     *
+*******
+*     *
+*     *
+*     *
+*******
+
+
+*******
+*     *
+*     *
+*     *
+*******
+      *
+      *
+      *
+*******
+
+
+*******
+*     *
+*     *
+*     *
+*******
+*     *
+*     *
+*     *
+*     *
+
+
+*      
+*      
+*      
+*      
+*******
+*     *
+*     *
+*     *
+*******
+
+
+*******
+*      
+*      
+*      
+*      
+*      
+*      
+*      
+*******
+
+
+      *
+      *
+      *
+      *
+*******
+*     *
+*     *
+*     *
+*******
+
+
+*******
+*      
+*      
+*      
+*******
+*      
+*      
+*      
+*******
+
+
+*******
+*      
+*      
+*      
+*******
+*      
+*      
+*      
+*      
+
+
+*******
+*      
+*      
+*      
+*******
+      *
+      *
+      *
+*******
+
+
+*********
+*        
+*        
+*        
+*        
+*        
+*        
+*        
+*        
+*********
+        *
+        *
+        *
+        *
+        *
+        *
+        *
+        *
+*********
+
+
+*************
+*            
+*            
+*            
+*            
+*            
+*            
+*            
+*            
+*            
+*            
+*            
+*            
+*************
+            *
+            *
+            *
+            *
+            *
+            *
+            *
+            *
+            *
+            *
+            *
+            *
+*************
+
+
+*****************
+*                
+*                
+*                
+*                
+*                
+*                
+*                
+*                
+*                
+*                
+*                
+*                
+*                
+*                
+*                
+*                
+*****************
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+                *
+*****************
+
+
+*      
+*      
+*      
+*******
+*     *
+*     *
+*******
+
+
+      *
+      *
+      *
+      *
+      *
+      *
+      *
+
+
+*******
+*      
+*      
+*******
+*      
+*      
+*******
+
+
+*******
+*      
+*      
+*******
+      *
+      *
+*******
+
+
+*******
+*      
+*      
+*******
+      *
+      *
+*******
+
+
+*******
+*      
+*      
+*******
+*      
+*      
+*******
+
+
+      *
+      *
+      *
+*******
+*     *
+*     *
+*******
+
+
+---------------------End Sample Run-------------------------*/
 
