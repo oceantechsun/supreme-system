@@ -1,0 +1,62 @@
+ /*****************************************************/
+        /* CS31A - Summer 2018                                  */
+        /* HW3: JDBC                                            */
+        /* Student Name: Jordan Laurent     */
+        /* SID: 20359071                                           */
+        /****************************************************/
+
+package dbms.vt;
+import java.io.IOException;
+import java.sql.*;
+import java.util.ArrayList;
+
+public class MyJDBC {
+   public final static String PORT = "5432";
+   public final static String DATABASE_NAME = "Mondial";
+   public final static String USERNAME = "postgres";
+   public final static String PSSWD = "JWsage12";
+   public final static String URL = "jdbc:postgresql://localhost:" + PORT + "/" + DATABASE_NAME;
+   public final static String CREATE_TABLES_DDL_URL = "/Users/jordanwilliams/Desktop/mondial-schema.txt";
+   public final static String INSERT_VALUES_DDL_URL = "/Users/jordanwilliams/Desktop/mondial-inputs.txt";
+   public final static String QUERY_DML_URL = "/Users/jordanwilliams/Desktop/mondial-queries.txt";
+   
+   public static void main(String[] args) throws SQLException, IOException {
+      
+      //ArrayList used to drop all tables
+      ArrayList<String> list = new ArrayList<String>();
+      Connection connection = DriverManager.getConnection(URL, USERNAME, PSSWD);
+      Statement stmt = connection.createStatement();
+      
+      //Names of all tables that are to be dropped stored in results
+      ResultSet results = stmt.executeQuery ("SELECT table_name FROM information_schema.tables "
+            + "WHERE table_schema='public' AND table_type='BASE TABLE'");
+      
+      while (results.next())        // As long as 'results' still have more data, keep looping
+          list.add(results.getString(1)); //Add the ResultSet's Strings to our ArrayList
+      
+      stmt.execute("DROP TYPE GEOCOORD CASCADE;"); //Drops GeoCoord Type to prevent errors
+      
+      //Drop each table using the arraylist index denoted by loop counter j
+      for(int j = 0; j < list.size(); j++)
+         stmt.execute("DROP TABLE " + list.get(j) + " CASCADE;");
+      
+      //Testing each of our static DDL and DML methods below, with any errors printed
+      if(SQLBuilder.createTables(connection, CREATE_TABLES_DDL_URL)) 
+         System.out.println("Successfully created all tables.");
+      else
+         System.out.println("SQLBuilder Exception. " + SQLBuilder.ex.getMessage());
+      
+      if(SQLLoader.insertValues(connection, INSERT_VALUES_DDL_URL))
+         System.out.println("Successfully inserted all values.");
+      else
+         System.out.println("SQLLoader Exception. " + SQLLoader.ex.getMessage());
+      
+      if(SQLRunner.execute(connection, QUERY_DML_URL))
+         System.out.println("Successfully executed and outputed all results.");
+      else
+         System.out.println("SQLRunner Exception. " + SQLRunner.ex.getMessage());
+         
+      connection.close();
+   }
+
+}
