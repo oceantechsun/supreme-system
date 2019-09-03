@@ -1,0 +1,57 @@
+ /*****************************************************/
+        /* CS31A - Summer 2018                                  */
+        /* HW3: JDBC                                            */
+        /* Student Name: Jordan Laurent     */
+        /* SID: 20359071                                           */
+        /****************************************************/
+
+package dbms.vt;
+
+import java.util.ArrayList;
+import java.sql.*;
+import java.io.*;
+
+public class SQLRunner
+{
+   protected static ArrayList<String> list;
+   static Statement stmt;
+   public static Exception ex = new Exception();
+   private static boolean errorFlag;
+   public static boolean execute(Connection connection, String fileURL)
+   {      
+      errorFlag = true;
+      try //Exception Handling block
+      {
+         connection.setAutoCommit(false); //setting auto commit to false to prevent bad tables
+         stmt = connection.createStatement();
+         ArrayList<String> list = new ArrayList<String>(FileIO.readStatementsFromFile(fileURL));
+         
+         //Attempt to write each query's results to a separate html file
+         for(int k = 0; k < list.size(); k++)
+            FileIO.writeToHTML(list.get(k), stmt.executeQuery(list.get(k)));
+         connection.commit();
+      }
+      catch(IOException e) //Returns false if Exception caught
+      { 
+         ex = new Exception(e);
+         errorFlag = false; 
+      }      
+      catch(SQLException s) //Returns false if Exception caught
+      { 
+         ex = new Exception(s);
+         errorFlag = false;
+      }
+      try //try to rollback() data if erroneous and reset AutoCommit to true
+      {
+         if(!errorFlag)
+            connection.rollback();
+         if(!connection.getAutoCommit())
+            connection.setAutoCommit(true);
+      }
+      catch (SQLException s)
+      {
+         return false; //return false if error is thrown
+      }
+      return errorFlag; //otherwise return errorFlag
+   }
+}
